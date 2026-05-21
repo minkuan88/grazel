@@ -60,6 +60,16 @@ internal val MAVEN_INSTALL_REPOSITORY = HttpArchiveRule(
  *    `maven_install.jetify_include_list`
  * @param additionalCoursierOptions Additional options to pass to Coursier, maps to
  *    `maven_install.additional_coursier_options`
+ * @param proxyRepositoryRewrites Map of `proxyUrlPrefix -> canonicalUrlPrefix` used to keep
+ *    generated artifacts portable when Gradle resolution flows through a CI-only URL-rewriting
+ *    proxy (e.g. an init script that points Gradle at an in-cluster artifact proxy). When
+ *    non-empty:
+ *    - `maven_install.repositories` entries are normalized back to canonical URLs at capture
+ *      time so the lockfile is environment-independent.
+ *    - `bazel_downloader.cfg` rules become `rewrite <canonical>/(.*) <user>:<pass>@<proxy>/$1`
+ *      so any Bazel invoked during `migrateToBazel` still routes through the proxy and
+ *      inherits its retry / fallback behavior.
+ *    Default is empty (identity) — fully backwards-compatible.
  */
 data class MavenInstallExtension(
     private val objects: ObjectFactory,
@@ -76,6 +86,7 @@ data class MavenInstallExtension(
     var additionalCoursierOptions: ListProperty<String> = objects.listProperty<String>().convention(
         emptyList()
     ),
+    var proxyRepositoryRewrites: MapProperty<String, String> = objects.mapProperty(),
 ) {
     // TODO GitRepositoryRule
     /**

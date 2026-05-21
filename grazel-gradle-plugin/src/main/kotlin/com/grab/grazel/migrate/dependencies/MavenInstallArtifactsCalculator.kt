@@ -52,6 +52,10 @@ constructor(
 
     private val includeCredentials get() = mavenInstallExtension.includeCredentials
 
+    private val proxyRepositoryRewrites: Map<String, String> by lazy {
+        mavenInstallExtension.proxyRepositoryRewrites.get()
+    }
+
     /** Map of user configured overrides for artifact versions. */
     private val overrideVersionsMap: Map< /*shortId*/ String, /*version*/ String> by lazy {
         grazelExtension
@@ -209,7 +213,7 @@ constructor(
         val username = if (includeCredentials) passwordCredentials?.username else null
         val password = if (includeCredentials) passwordCredentials?.password else null
         return DefaultMavenRepository(
-            url.toString(),
+            ProxyUrlRewrites.toCanonical(url.toString(), proxyRepositoryRewrites),
             username,
             password
         )

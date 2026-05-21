@@ -24,12 +24,14 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskProvider
+import org.gradle.kotlin.dsl.mapProperty
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.setProperty
 import javax.inject.Inject
@@ -44,6 +46,9 @@ constructor(
     @get:Input
     val allRepositories: SetProperty<Repository> = objectFactory.setProperty()
 
+    @get:Input
+    val proxyRewrites: MapProperty<String, String> = objectFactory.mapProperty()
+
     @get:OutputFile
     val outputFile: RegularFileProperty = objectFactory.fileProperty()
 
@@ -54,7 +59,7 @@ constructor(
 
     @TaskAction
     fun action() {
-        UrlRewriter().generate(
+        UrlRewriter(proxyRewrites.get()).generate(
             outputFile = outputFile.get().asFile,
             allRepositories = allRepositories.get()
         )
@@ -73,6 +78,9 @@ constructor(
             ) {
                 allRepositories.set(
                     grazelComponent.repositoryDataSource().get().allRepositoriesLazy
+                )
+                proxyRewrites.set(
+                    grazelComponent.extension().rules.mavenInstall.proxyRepositoryRewrites
                 )
                 outputFile.set(project.file("bazel_downloader.cfg"))
             }
